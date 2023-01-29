@@ -74,9 +74,21 @@ public class Telekinesis : MonoBehaviour
             rollRotations_Right.RemoveAt(0);
         }
 
+        // If the left controller was one second ago upright and now tilted to the right -> telekinesis
+        float valueSecondAgo = rollRotations_Left.IndexOf(0);
+        float currentValue = leftRotationAngles.z;
+        if (
+            (valueSecondAgo < 20 || valueSecondAgo > 360 - 20) &&
+            (currentValue > 60 && currentValue < 120) &&
+            leftHandGrabbee != null
+        )
+        {
+            leftHandGrabbee.transform.position = leftControllerTr.position + leftControllerTr.forward * 5f;
+        }
+
         // If the right controller was one second ago upright and now tilted to the left -> telekinesis
-        float valueSecondAgo = rollRotations_Right.IndexOf(0);
-        float currentValue = rightRotationAngles.z;
+        valueSecondAgo = rollRotations_Right.IndexOf(0);
+        currentValue = rightRotationAngles.z;
         if (
             (valueSecondAgo < 20 || valueSecondAgo > 360 - 20) &&
             (currentValue > 60 && currentValue < 120) &&
