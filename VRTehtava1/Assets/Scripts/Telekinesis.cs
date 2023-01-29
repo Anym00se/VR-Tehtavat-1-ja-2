@@ -18,114 +18,97 @@ public class Telekinesis : MonoBehaviour
     public TMP_Text leftControllerHoveringText;
     public TMP_Text rightControllerHoveringText;
 
-    // Keep track of controllers roll-rotations
-    List<float> rollRotations_Left = new List<float>();
-    List<float> rollRotations_Right = new List<float>();
+    // Controller angle at the moment of ray entering collider 
+    float previousRollValueLeft = 0f;
+    float previousRollValueRight = 0f;
 
     // Objects which have been grabbed
     private Rigidbody leftHandGrabbee;
     private Rigidbody rightHandGrabbee;
 
+    // How much hand needs to rotate to activate telekinesis
+    private float telekinesisAngle = 45f;
+
 
     void Update()
     {
-        leftHandGrabbee = null;
-        rightHandGrabbee = null;
+        // Get rotation values
+        Vector3 leftRotationAngles = rotationReference_Left.action.ReadValue<Quaternion>().eulerAngles;
+        Vector3 rightRotationAngles = rotationReference_Right.action.ReadValue<Quaternion>().eulerAngles;
 
+        float leftAngle = leftRotationAngles.z;
+        float rightAngle = rightRotationAngles.z;
+
+        // Convert rotation angles to be between [-180f, 180f] with 0f as the default angle
+        leftAngle = leftAngle > 180f ? leftAngle - 360f : leftAngle;
+        rightAngle = rightAngle > 180f ? rightAngle - 360f : rightAngle;
+
+        // Left controller raycast
         RaycastHit hit;
         if (Physics.Raycast(leftControllerTr.position, leftControllerTr.forward, out hit, Mathf.Infinity))
         {
             if (hit.collider.gameObject.GetComponent<Rigidbody>())
             {
+                if (leftHandGrabbee == null)
+                {
+                    previousRollValueLeft = leftAngle;
+                }
                 leftHandGrabbee = hit.collider.gameObject.GetComponent<Rigidbody>();
             }
+            else
+            {
+                leftHandGrabbee = null;
+            }
+        }
+        else
+        {
+            leftHandGrabbee = null;
         }
 
+        // Right controller raycast
         RaycastHit hit2;
         if (Physics.Raycast(rightControllerTr.position, rightControllerTr.forward, out hit2, Mathf.Infinity))
         {
             if (hit2.collider.gameObject.GetComponent<Rigidbody>())
             {
+                if (rightHandGrabbee == null)
+                {
+                    previousRollValueRight = rightAngle;
+                }
                 rightHandGrabbee = hit2.collider.gameObject.GetComponent<Rigidbody>();
             }
+            else
+            {
+                rightHandGrabbee = null;
+            }
+        }
+        else
+        {
+            rightHandGrabbee = null;
         }
 
-        // Get rotation values
-        Vector3 leftRotationAngles = rotationReference_Left.action.ReadValue<Quaternion>().eulerAngles;
-        Vector3 rightRotationAngles = rotationReference_Right.action.ReadValue<Quaternion>().eulerAngles;
-
-        // Show the rotation values on the screen
-        leftControllerRotationText.text = "L: " + leftRotationAngles.ToString();
-        rightControllerRotationText.text = "R: " + rightRotationAngles.ToString();
+        // Debug values
         leftControllerHoveringText.text = "L hovering: " + (leftHandGrabbee != null).ToString();
         rightControllerHoveringText.text = "R hovering: " + (rightHandGrabbee != null).ToString();
 
-        // Keep track of controllers roll-rotations over time
-        rollRotations_Left.Add(leftRotationAngles.z);
-        rollRotations_Right.Add(rightRotationAngles.z);
-
-        // Limit the lists sizes to 60
-        if (rollRotations_Left.Count > 60)
-        {
-            rollRotations_Left.RemoveAt(0);
-        }
-        if (rollRotations_Right.Count > 60)
-        {
-            rollRotations_Right.RemoveAt(0);
-        }
-
-        // If the left controller was one second ago upright and now tilted to the right -> telekinesis
-        float valueSecondAgo = rollRotations_Left.IndexOf(0);
-        float currentValue = leftRotationAngles.z;
+        // Left controller telekinesis
         if (
-            (valueSecondAgo < 20 || valueSecondAgo > 360 - 20) &&
-            (currentValue > 60 && currentValue < 120) &&
+            (previousRollValueLeft - leftAngle >= telekinesisAngle) &&
             leftHandGrabbee != null
         )
         {
             leftHandGrabbee.transform.position = leftControllerTr.position + leftControllerTr.forward * 5f;
         }
+        leftControllerRotationText.text = string.Format("L now: {0}, L prev: {1}", leftAngle, previousRollValueLeft);
 
-        // If the right controller was one second ago upright and now tilted to the left -> telekinesis
-        valueSecondAgo = rollRotations_Right.IndexOf(0);
-        currentValue = rightRotationAngles.z;
+        // Right controller telekinesis
         if (
-            (valueSecondAgo < 20 || valueSecondAgo > 360 - 20) &&
-            (currentValue > 60 && currentValue < 120) &&
+            (rightAngle - previousRollValueRight >= telekinesisAngle) &&
             rightHandGrabbee != null
         )
         {
             rightHandGrabbee.transform.position = rightControllerTr.position + rightControllerTr.forward * 5f;
         }
-    }
-
-    float GetMinValueFromList(List<float> list)
-    {
-        float minValue = Mathf.Infinity;
-
-        foreach (float value in list)
-        {
-            if (value < minValue)
-            {
-                minValue = value;
-            }
-        }
-
-        return minValue;
-    }
-
-    float GetMaxValueFromList(List<float> list)
-    {
-        float maxValue = -Mathf.Infinity;
-
-        foreach (float value in list)
-        {
-            if (value > maxValue)
-            {
-                maxValue = value;
-            }
-        }
-
-        return maxValue;
+        rightControllerRotationText.text = string.Format("R now: {0}, R prev: {1}", rightAngle, previousRollValueRight);
     }
 }
