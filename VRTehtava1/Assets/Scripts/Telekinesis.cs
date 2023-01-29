@@ -12,6 +12,7 @@ public class Telekinesis : MonoBehaviour
     public InputActionReference rotationReference_Left = null;
     public InputActionReference rotationReference_Right = null;
 
+    [Header("UI")]
     public TMP_Text leftControllerRotationText;
     public TMP_Text rightControllerRotationText;
     public TMP_Text leftControllerHoveringText;
@@ -21,26 +22,31 @@ public class Telekinesis : MonoBehaviour
     List<float> rollRotations_Left = new List<float>();
     List<float> rollRotations_Right = new List<float>();
 
+    // Objects which have been grabbed
+    private Rigidbody leftHandGrabbee;
+    private Rigidbody rightHandGrabbee;
+
 
     void Update()
     {
-        bool leftHovering = false;
+        leftHandGrabbee = null;
+        rightHandGrabbee = null;
+
         RaycastHit hit;
         if (Physics.Raycast(leftControllerTr.position, leftControllerTr.forward, out hit, Mathf.Infinity))
         {
-            if (hit.collider.gameObject.GetComponent<XRGrabInteractable>())
+            if (hit.collider.gameObject.GetComponent<Rigidbody>())
             {
-                leftHovering = true;
+                leftHandGrabbee = hit.collider.gameObject.GetComponent<Rigidbody>();
             }
         }
 
-        bool rightHovering = false;
         RaycastHit hit2;
         if (Physics.Raycast(rightControllerTr.position, rightControllerTr.forward, out hit2, Mathf.Infinity))
         {
-            if (hit2.collider.gameObject.GetComponent<XRGrabInteractable>())
+            if (hit2.collider.gameObject.GetComponent<Rigidbody>())
             {
-                rightHovering = true;
+                rightHandGrabbee = hit2.collider.gameObject.GetComponent<Rigidbody>();
             }
         }
 
@@ -51,8 +57,8 @@ public class Telekinesis : MonoBehaviour
         // Show the rotation values on the screen
         leftControllerRotationText.text = "L: " + leftRotationAngles.ToString();
         rightControllerRotationText.text = "R: " + rightRotationAngles.ToString();
-        leftControllerHoveringText.text = "L hovering: " + leftHovering.ToString();
-        rightControllerHoveringText.text = "R hovering: " + rightHovering.ToString();
+        leftControllerHoveringText.text = "L hovering: " + (leftHandGrabbee != null).ToString();
+        rightControllerHoveringText.text = "R hovering: " + (rightHandGrabbee != null).ToString();
 
         // Keep track of controllers roll-rotations over time
         rollRotations_Left.Add(leftRotationAngles.z);
@@ -74,10 +80,10 @@ public class Telekinesis : MonoBehaviour
         if (
             (valueSecondAgo < 20 || valueSecondAgo > 360 - 20) &&
             (currentValue > 60 && currentValue < 120) &&
-            rightHovering
+            rightHandGrabbee != null
         )
         {
-
+            rightHandGrabbee.transform.position = rightControllerTr.position + rightControllerTr.forward * 5f;
         }
     }
 
